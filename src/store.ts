@@ -6,13 +6,30 @@ export type Store = { items: Item[] };
 
 const FILENAME = 'todos.json';
 
+function isFileNotFound(e: unknown): boolean {
+  const msg = String(e instanceof Error ? e.message : e).toLowerCase();
+  return msg.includes('os error 2') || msg.includes('no such file') || msg.includes('path not found');
+}
+
+function isValidItem(x: unknown): x is Item {
+  return (
+    typeof x === 'object' && x !== null &&
+    typeof (x as Item).id === 'string' && (x as Item).id.length > 0 &&
+    typeof (x as Item).text === 'string' &&
+    typeof (x as Item).done === 'boolean'
+  );
+}
+
 export async function loadTodos(): Promise<Item[]> {
   try {
     const dir = await appDataDir();
     const raw = await readTextFile(`${dir}/${FILENAME}`);
-    return (JSON.parse(raw) as Store).items ?? [];
-  } catch {
-    return [];
+    const parsed = JSON.parse(raw) as Store;
+    const items = Array.isArray(parsed.items) ? parsed.items : [];
+    return items.filter(isValidItem);
+  } catch (e) {
+    if (isFileNotFound(e)) return [];
+    throw e;
   }
 }
 

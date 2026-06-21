@@ -11,7 +11,7 @@ vi.mock('@tauri-apps/api/path', () => ({
 vi.mock('@tauri-apps/plugin-fs', () => ({
   readTextFile: vi.fn((path: string) => {
     if (mockFiles[path] !== undefined) return Promise.resolve(mockFiles[path]);
-    return Promise.reject(new Error('File not found'));
+    return Promise.reject(new Error('No such file or directory (os error 2)'));
   }),
   writeTextFile: vi.fn((path: string, content: string) => {
     mockFiles[path] = content;
@@ -50,10 +50,9 @@ describe('loadTodos', () => {
     expect(items).toEqual([]);
   });
 
-  it('returns empty array on corrupt JSON', async () => {
+  it('throws on corrupt JSON (caller must not overwrite)', async () => {
     mockFiles['/mock/appdata/todos.json'] = 'not-json{{{{';
-    const items = await loadTodos();
-    expect(items).toEqual([]);
+    await expect(loadTodos()).rejects.toThrow();
   });
 
   it('returns items from valid file', async () => {
@@ -67,6 +66,20 @@ describe('loadTodos', () => {
     mockFiles['/mock/appdata/todos.json'] = JSON.stringify({ other: 'data' });
     const items = await loadTodos();
     expect(items).toEqual([]);
+  });
+
+  it('filters out malformed items (null id, wrong types)', async () => {
+    const stored = [
+      { id: '1', text: 'valid', done: false },
+      { id: null, text: 'bad id', done: false },
+      { id: '3', text: 123, done: false },
+      { id: '4', text: 'bad done', done: 'yes' },
+      { id: '', text: 'empty id', done: false },
+    ];
+    mockFiles['/mock/appdata/todos.json'] = JSON.stringify({ items: stored });
+    const items = await loadTodos();
+    expect(items).toHaveLength(1);
+    expect(items[0].id).toBe('1');
   });
 });
 

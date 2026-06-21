@@ -33,6 +33,7 @@ export function startPositionPersistence(): () => void {
   });
 
   return () => {
-    unlisten.then(fn => fn());
+    clearTimeout(timer);
+    unlisten.then(fn => fn()).catch(() => {});
   };
 }

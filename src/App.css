@@ -231,7 +231,8 @@ body {
   transition: color 100ms ease;
 }
 
-.item:hover .delete-btn {
+.item:hover .delete-btn,
+.item:focus-within .delete-btn {
   display: flex;
 }
 

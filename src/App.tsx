@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { loadTodos, saveTodos, createItem, Item } from './store';
 import { restorePosition, startPositionPersistence } from './window';
@@ -9,11 +9,18 @@ export default function App() {
   const [input, setInput] = useState('');
   const [saveError, setSaveError] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const saveErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const init = async () => {
       await restorePosition();
-      setItems(await loadTodos());
+      try {
+        setItems(await loadTodos());
+      } catch {
+        setLoadError(true);
+      }
       setLoaded(true);
     };
     init();
@@ -25,19 +32,23 @@ export default function App() {
     const cleanupPosition = startPositionPersistence();
 
     return () => {
-      unlistenFocus.then(fn => fn());
+      if (saveErrorTimerRef.current) clearTimeout(saveErrorTimerRef.current);
+      unlistenFocus.then(fn => fn()).catch(() => {});
       cleanupPosition();
     };
   }, []);
 
-  const safeSave = async (next: Item[]) => {
-    try {
-      await saveTodos(next);
-      setSaveError(false);
-    } catch {
-      setSaveError(true);
-      setTimeout(() => setSaveError(false), 2000);
-    }
+  const safeSave = (next: Item[]) => {
+    if (loadError) return; // never overwrite a corrupted file
+    saveQueueRef.current = saveQueueRef.current
+      .catch(() => {})
+      .then(() => saveTodos(next))
+      .then(() => setSaveError(false))
+      .catch(() => {
+        if (saveErrorTimerRef.current) clearTimeout(saveErrorTimerRef.current);
+        setSaveError(true);
+        saveErrorTimerRef.current = setTimeout(() => setSaveError(false), 2000);
+      });
   };
 
   const addItem = async () => {
@@ -107,7 +118,10 @@ export default function App() {
         ))}
       </ul>
 
-      {saveError && (
+      {loadError && (
+        <div className="save-toast">⚠ todos.json is corrupted — data not loaded</div>
+      )}
+      {!loadError && saveError && (
         <div className="save-toast">Couldn't save — disk full?</div>
       )}
     </div>
