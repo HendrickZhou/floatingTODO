@@ -1,0 +1,276 @@
+/* ── Design tokens ── */
+:root {
+  --panel-bg: rgba(20, 20, 30, 0.72);
+  --panel-border: rgba(255, 255, 255, 0.12);
+  --panel-radius: 14px;
+  --panel-blur: blur(24px) saturate(180%);
+
+  --input-bg: rgba(255, 255, 255, 0.08);
+  --input-border: rgba(255, 255, 255, 0.12);
+  --input-radius: 8px;
+  --input-placeholder: rgba(255, 255, 255, 0.4);
+
+  --text-primary: rgba(255, 255, 255, 0.88);
+  --text-done: rgba(255, 255, 255, 0.35);
+
+  --check-border: rgba(255, 255, 255, 0.3);
+  --check-done-bg: #30D158;
+  --check-done-border: #30D158;
+
+  --del-color: rgba(255, 255, 255, 0.25);
+  --del-hover: rgba(255, 94, 94, 0.9);
+
+  --drag-dot: rgba(255, 255, 255, 0.2);
+  --divider: rgba(255, 255, 255, 0.05);
+
+  --toast-bg: rgba(255, 59, 48, 0.85);
+
+  --sp-xs: 4px;
+  --sp-sm: 8px;
+  --sp-md: 10px;
+  --sp-lg: 16px;
+
+  transition: opacity 150ms ease;
+}
+
+/* ── Global reset ── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: transparent;
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  width: 280px;
+  height: 400px;
+}
+
+/* ── Panel (the frosted glass card) ── */
+.app {
+  width: 280px;
+  height: 400px;
+  background: var(--panel-bg);
+  backdrop-filter: var(--panel-blur);
+  -webkit-backdrop-filter: var(--panel-blur);
+  border-radius: var(--panel-radius);
+  border: 1px solid var(--panel-border);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* ── Drag header ── */
+.drag-header {
+  height: 28px;
+  -webkit-app-region: drag;
+  cursor: grab;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-xs);
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid var(--divider);
+  flex-shrink: 0;
+}
+
+.drag-dot {
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--drag-dot);
+}
+
+/* ── Add-task input ── */
+.add-input {
+  margin: var(--sp-sm);
+  padding: 7px 12px;
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: var(--input-radius);
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--text-primary);
+  outline: none;
+  flex-shrink: 0;
+}
+
+.add-input::placeholder {
+  color: var(--input-placeholder);
+}
+
+.add-input:focus {
+  border-color: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.11);
+}
+
+/* ── Item list ── */
+.item-list {
+  list-style: none;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.item-list::-webkit-scrollbar {
+  width: 3px;
+}
+
+.item-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.item-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 2px;
+}
+
+/* ── Empty state ── */
+.empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 120px;
+  color: rgba(255, 255, 255, 0.28);
+  font-size: 12px;
+  text-align: center;
+  padding: var(--sp-lg);
+  list-style: none;
+}
+
+/* ── Item row ── */
+.item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-md);
+  padding: 9px var(--sp-md);
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--divider);
+}
+
+.item:last-child {
+  border-bottom: none;
+}
+
+/* ── Custom circular checkbox ── */
+.item-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid var(--check-border);
+  flex-shrink: 0;
+  cursor: pointer;
+  position: relative;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+
+.item-checkbox:hover {
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.item-checkbox:checked {
+  background: var(--check-done-bg);
+  border-color: var(--check-done-border);
+}
+
+.item-checkbox:checked::after {
+  content: '✓';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* ── Item text ── */
+.item-text {
+  flex: 1;
+  word-break: break-word;
+  line-height: 1.4;
+}
+
+.item.done .item-text {
+  text-decoration: line-through;
+  color: var(--text-done);
+}
+
+/* ── Delete button ── */
+.delete-btn {
+  display: none;
+  width: 18px;
+  height: 18px;
+  border: none;
+  background: none;
+  color: var(--del-color);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 3px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: color 100ms ease;
+}
+
+.item:hover .delete-btn {
+  display: flex;
+}
+
+.delete-btn:hover {
+  color: var(--del-hover);
+}
+
+/* ── All-done pulse ── */
+.app.all-done {
+  animation: done-pulse 0.5s ease-out;
+}
+
+@keyframes done-pulse {
+  0%   { opacity: 1; }
+  35%  { opacity: 0.55; }
+  100% { opacity: 1; }
+}
+
+/* ── Save-error toast ── */
+.save-toast {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--toast-bg);
+  color: white;
+  font-size: 11px;
+  text-align: center;
+  padding: 5px var(--sp-sm);
+  border-radius: 0 0 var(--panel-radius) var(--panel-radius);
+  animation: toast-in 0.2s ease, toast-out 0.2s ease 1.8s forwards;
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes toast-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
