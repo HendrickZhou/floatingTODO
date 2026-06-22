@@ -9,6 +9,7 @@ vi.mock('@tauri-apps/api/path', () => ({
 }));
 
 vi.mock('@tauri-apps/plugin-fs', () => ({
+  mkdir: vi.fn(() => Promise.resolve()),
   readTextFile: vi.fn((path: string) => {
     if (mockFiles[path] !== undefined) return Promise.resolve(mockFiles[path]);
     return Promise.reject(new Error('No such file or directory (os error 2)'));

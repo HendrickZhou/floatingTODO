@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { getCurrentWindow } from '@tauri-apps/api/window';
+import { getCurrentWindow, LogicalSize, PhysicalPosition } from '@tauri-apps/api/window';
+import { check } from '@tauri-apps/plugin-updater';
 import { loadTodos, saveTodos, createItem, Item } from './store';
 import { restorePosition, startPositionPersistence } from './window';
+import { getLocalCollapsed, setLocalCollapsed, clampYForExpand } from './collapse';
 import './App.css';
 
 export default function App() {
@@ -10,12 +12,22 @@ export default function App() {
   const [saveError, setSaveError] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [loadError, setLoadError] = useState(false);
+  const [collapsed, setCollapsed] = useState(getLocalCollapsed);
+  const [updateAvailable, setUpdateAvailable] = useState(false);
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const saveErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isResizingRef = useRef(false);
 
   useEffect(() => {
+    check().then(update => {
+      if (update?.available) setUpdateAvailable(true);
+    }).catch(() => {});
+
     const init = async () => {
       await restorePosition();
+      if (getLocalCollapsed()) {
+        try { await getCurrentWindow().setSize(new LogicalSize(280, 28)); } catch {}
+      }
       try {
         setItems(await loadTodos());
       } catch {
@@ -37,6 +49,36 @@ export default function App() {
       cleanupPosition();
     };
   }, []);
+
+  const toggleCollapse = async () => {
+    if (isResizingRef.current) return;
+    isResizingRef.current = true;
+    const win = getCurrentWindow();
+    try {
+      if (collapsed) {
+        const pos = await win.outerPosition();
+        const safeY = clampYForExpand(
+          pos.y,
+          window.devicePixelRatio,
+          window.screen.height * window.devicePixelRatio,
+        );
+        if (safeY !== pos.y) {
+          await win.setPosition(new PhysicalPosition(pos.x, safeY));
+        }
+        await win.setSize(new LogicalSize(280, 400));
+        setLocalCollapsed(false);
+        setCollapsed(false);
+      } else {
+        await win.setSize(new LogicalSize(280, 28));
+        setLocalCollapsed(true);
+        setCollapsed(true);
+      }
+    } catch {
+      // setSize/setPosition failed — leave state unchanged
+    } finally {
+      isResizingRef.current = false;
+    }
+  };
 
   const safeSave = (next: Item[]) => {
     if (loadError) return; // never overwrite a corrupted file
@@ -75,7 +117,7 @@ export default function App() {
   const allDone = loaded && items.length > 0 && items.every(i => i.done);
 
   return (
-    <div className={`app${allDone ? ' all-done' : ''}`}>
+    <div className={`app${allDone ? ' all-done' : ''}${collapsed ? ' collapsed' : ''}`}>
       <div
         className="drag-header"
         onMouseDown={(e) => { if (e.buttons === 1) getCurrentWindow().startDragging(); }}
@@ -85,48 +127,61 @@ export default function App() {
         <span className="drag-dot" />
         <span className="drag-dot" />
         <span className="drag-dot" />
+        {updateAvailable && (
+          <span className="update-dot" title="Update available — reinstall to upgrade" />
+        )}
+        <button
+          className="collapse-btn"
+          aria-label={collapsed ? 'Expand' : 'Minimize'}
+          onClick={toggleCollapse}
+          onMouseDown={e => e.stopPropagation()}
+        >
+          {collapsed ? '⌄' : '⌃'}
+        </button>
       </div>
 
-      <input
-        className="add-input"
-        value={input}
-        onChange={e => setInput(e.target.value)}
-        onKeyDown={e => e.key === 'Enter' && addItem()}
-        placeholder="Add task..."
-        autoFocus
-      />
+      <div inert={collapsed ? true : undefined}>
+        <input
+          className="add-input"
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && addItem()}
+          placeholder="Add task..."
+          autoFocus
+        />
 
-      <ul className="item-list">
-        {loaded && items.length === 0 && (
-          <li className="empty-state">What's on your plate today?</li>
+        <ul className="item-list">
+          {loaded && items.length === 0 && (
+            <li className="empty-state">What's on your plate today?</li>
+          )}
+          {items.map(item => (
+            <li key={item.id} className={`item${item.done ? ' done' : ''}`}>
+              <input
+                type="checkbox"
+                className="item-checkbox"
+                checked={item.done}
+                onChange={() => toggleItem(item.id)}
+                aria-label={`Mark "${item.text}" complete`}
+              />
+              <span className="item-text">{item.text}</span>
+              <button
+                className="delete-btn"
+                aria-label="Delete task"
+                onClick={() => deleteItem(item.id)}
+              >
+                ×
+              </button>
+            </li>
+          ))}
+        </ul>
+
+        {loadError && (
+          <div className="save-toast">⚠ todos.json is corrupted — data not loaded</div>
         )}
-        {items.map(item => (
-          <li key={item.id} className={`item${item.done ? ' done' : ''}`}>
-            <input
-              type="checkbox"
-              className="item-checkbox"
-              checked={item.done}
-              onChange={() => toggleItem(item.id)}
-              aria-label={`Mark "${item.text}" complete`}
-            />
-            <span className="item-text">{item.text}</span>
-            <button
-              className="delete-btn"
-              aria-label="Delete task"
-              onClick={() => deleteItem(item.id)}
-            >
-              ×
-            </button>
-          </li>
-        ))}
-      </ul>
-
-      {loadError && (
-        <div className="save-toast">⚠ todos.json is corrupted — data not loaded</div>
-      )}
-      {!loadError && saveError && (
-        <div className="save-toast">Couldn't save — disk full?</div>
-      )}
+        {!loadError && saveError && (
+          <div className="save-toast">Couldn't save — disk full?</div>
+        )}
+      </div>
     </div>
   );
 }

@@ -23,3 +23,10 @@ dist-ssr
 *.sln
 *.sw?
 .gstack/
+
+# Tauri build artifacts
+src-tauri/target/
+
+# Signing keys — never commit these
+*.key
+*.key.pub

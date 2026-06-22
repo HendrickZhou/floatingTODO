@@ -1,5 +1,5 @@
 import { appDataDir } from '@tauri-apps/api/path';
-import { writeTextFile, readTextFile, rename } from '@tauri-apps/plugin-fs';
+import { writeTextFile, readTextFile, rename, mkdir } from '@tauri-apps/plugin-fs';
 
 export type Item = { id: string; text: string; done: boolean };
 export type Store = { items: Item[] };
@@ -35,6 +35,7 @@ export async function loadTodos(): Promise<Item[]> {
 
 export async function saveTodos(items: Item[]): Promise<void> {
   const dir = await appDataDir();
+  await mkdir(dir, { recursive: true });
   const tmp = `${dir}/${FILENAME}.tmp`;
   await writeTextFile(tmp, JSON.stringify({ items }));
   await rename(tmp, `${dir}/${FILENAME}`);
