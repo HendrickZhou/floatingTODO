@@ -73,7 +73,6 @@ body {
 /* ── Drag header ── */
 .drag-header {
   height: 28px;
-  -webkit-app-region: drag;
   cursor: grab;
   display: flex;
   align-items: center;

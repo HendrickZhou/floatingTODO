@@ -76,7 +76,10 @@ export default function App() {
 
   return (
     <div className={`app${allDone ? ' all-done' : ''}`}>
-      <div className="drag-header" data-tauri-drag-region>
+      <div
+        className="drag-header"
+        onMouseDown={(e) => { if (e.buttons === 1) getCurrentWindow().startDragging(); }}
+      >
         <span className="drag-dot" />
         <span className="drag-dot" />
         <span className="drag-dot" />
