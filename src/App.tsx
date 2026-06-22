@@ -51,25 +51,25 @@ export default function App() {
       });
   };
 
-  const addItem = async () => {
+  const addItem = () => {
     const text = input.trim();
     if (!text) return;
     const next = [...items, createItem(text)];
     setItems(next);
     setInput('');
-    await safeSave(next);
+    safeSave(next);
   };
 
-  const toggleItem = async (id: string) => {
+  const toggleItem = (id: string) => {
     const next = items.map(i => i.id === id ? { ...i, done: !i.done } : i);
     setItems(next);
-    await safeSave(next);
+    safeSave(next);
   };
 
-  const deleteItem = async (id: string) => {
+  const deleteItem = (id: string) => {
     const next = items.filter(i => i.id !== id);
     setItems(next);
-    await safeSave(next);
+    safeSave(next);
   };
 
   const allDone = loaded && items.length > 0 && items.every(i => i.done);

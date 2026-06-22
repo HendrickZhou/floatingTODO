@@ -1,4 +1,4 @@
-import { getCurrentWindow, LogicalPosition } from '@tauri-apps/api/window';
+import { getCurrentWindow, PhysicalPosition } from '@tauri-apps/api/window';
 import { TauriEvent } from '@tauri-apps/api/event';
 import { appDataDir } from '@tauri-apps/api/path';
 import { writeTextFile, readTextFile } from '@tauri-apps/plugin-fs';
@@ -10,7 +10,8 @@ export async function restorePosition(): Promise<void> {
   try {
     const dir = await appDataDir();
     const pos = JSON.parse(await readTextFile(`${dir}/${STATE_FILE}`));
-    await win.setPosition(new LogicalPosition(pos.x, pos.y));
+    if (typeof pos.x !== 'number' || typeof pos.y !== 'number') return;
+    await win.setPosition(new PhysicalPosition(pos.x, pos.y));
   } catch {
     // first launch — use tauri.conf.json defaults
   }
