@@ -12,18 +12,18 @@ jobs:
       contents: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '20'
 
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
 
       - name: Rust cache
-        uses: swatinem/rust-cache@v2
+        uses: swatinem/rust-cache@42dc69e1aa15d09112580998cf2ef0119e2e91ae # v2
         with:
           workspaces: src-tauri
 
@@ -41,7 +41,7 @@ jobs:
         run: echo "version=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
 
       - name: Create GitHub release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           name: "v${{ steps.version.outputs.version }}"
           draft: false
@@ -60,21 +60,27 @@ jobs:
           if [ "$ARCH" = "arm64" ]; then PLATFORM="darwin-aarch64"; else PLATFORM="darwin-x86_64"; fi
 
           SIG=$(cat src-tauri/target/release/bundle/macos/*.app.tar.gz.sig)
-          URL="https://github.com/HendrickZhou/floatingTODO/releases/download/v${VERSION}/$(ls src-tauri/target/release/bundle/macos/*.app.tar.gz | xargs basename)"
+          BUNDLE=$(ls src-tauri/target/release/bundle/macos/*.app.tar.gz | xargs basename)
+          URL="https://github.com/HendrickZhou/floatingTODO/releases/download/v${VERSION}/${BUNDLE}"
+          PUB_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
-          cat > latest.json << EOF
-          {
-            "version": "${VERSION}",
-            "notes": "See release notes on GitHub.",
-            "pub_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-            "platforms": {
-              "${PLATFORM}": {
-                "signature": "${SIG}",
-                "url": "${URL}"
+          # Use python3 to write valid JSON without manual string escaping
+          SIG="$SIG" VERSION="$VERSION" PLATFORM="$PLATFORM" URL="$URL" PUB_DATE="$PUB_DATE" \
+          python3 -c "
+          import json, os
+          data = {
+            'version': os.environ['VERSION'],
+            'notes': 'See release notes on GitHub.',
+            'pub_date': os.environ['PUB_DATE'],
+            'platforms': {
+              os.environ['PLATFORM']: {
+                'signature': os.environ['SIG'],
+                'url': os.environ['URL'],
               }
             }
           }
-          EOF
+          print(json.dumps(data, indent=2))
+          " > latest.json
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
