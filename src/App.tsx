@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { getCurrentWindow, LogicalSize, PhysicalPosition } from '@tauri-apps/api/window';
-import { check } from '@tauri-apps/plugin-updater';
+import { check, Update } from '@tauri-apps/plugin-updater';
 import { loadTodos, saveTodos, createItem, Item } from './store';
 import { restorePosition, startPositionPersistence } from './window';
 import { getLocalCollapsed, setLocalCollapsed, clampYForExpand } from './collapse';
@@ -14,13 +14,16 @@ export default function App() {
   const [loadError, setLoadError] = useState(false);
   const [collapsed, setCollapsed] = useState(getLocalCollapsed);
   const [updateAvailable, setUpdateAvailable] = useState(false);
+  const [updateInstalling, setUpdateInstalling] = useState(false);
+  const [updateDone, setUpdateDone] = useState(false);
+  const updateRef = useRef<Update | null>(null);
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const saveErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isResizingRef = useRef(false);
 
   useEffect(() => {
     check().then(update => {
-      if (update?.available) setUpdateAvailable(true);
+      if (update) { updateRef.current = update; setUpdateAvailable(true); }
     }).catch(() => {});
 
     const init = async () => {
@@ -49,6 +52,18 @@ export default function App() {
       cleanupPosition();
     };
   }, []);
+
+  const handleUpdateClick = async () => {
+    if (!updateRef.current || updateInstalling || updateDone) return;
+    setUpdateInstalling(true);
+    try {
+      await updateRef.current.downloadAndInstall();
+      setUpdateDone(true);
+      await getCurrentWindow().close();
+    } catch {
+      setUpdateInstalling(false);
+    }
+  };
 
   const toggleCollapse = async () => {
     if (isResizingRef.current) return;
@@ -128,7 +143,13 @@ export default function App() {
         <span className="drag-dot" />
         <span className="drag-dot" />
         {updateAvailable && (
-          <span className="update-dot" title="Update available — reinstall to upgrade" />
+          <span
+            className={`update-dot${updateInstalling ? ' update-dot--installing' : ''}`}
+            title={updateInstalling ? 'Installing update…' : updateDone ? 'Restarting…' : 'Update available — click to install'}
+            onClick={handleUpdateClick}
+            onMouseDown={e => e.stopPropagation()}
+            style={{ cursor: updateInstalling || updateDone ? 'default' : 'pointer' }}
+          />
         )}
         <button
           className="collapse-btn"
