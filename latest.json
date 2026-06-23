@@ -1,11 +1,11 @@
 {
-  "version": "0.1.7",
+  "version": "0.1.8",
   "notes": "See release notes on GitHub.",
-  "pub_date": "2026-06-23T17:50:47Z",
+  "pub_date": "2026-06-23T20:54:47Z",
   "platforms": {
     "darwin-aarch64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTU04xRVF2eXZyWDBON0dKTWdlVUdKZEtTcDNzUCtQQ290L21TZGQxWHU0NkRmR3Fod1JuWWw1aDdMamJJT2lIc3M2Wmt2Y1FDQXk3WUJkcmFtK1ZXbkJMeWl4YlRKend3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMjM3MDM5CWZpbGU6ZmxvYXRpbmdUT0RPLmFwcC50YXIuZ3oKNjJtaXNwRXppVi83aFo0bnlUbmcrZ3oyRmlHWk5aVlhnRnREbnhkSFJTRHZBdUZ0YUIycWJEdlhSSEovOWdiMU1IQkh0UCs5RW1USThLbHNoNG9YQWc9PQo=",
-      "url": "https://github.com/HendrickZhou/floatingTODO/releases/download/v0.1.7/floatingTODO.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTU04xRVF2eXZyWDlXdk1ZN1R5ZjZuNkdQQ3pBbXNEeFI2aVQ1RThUUVF2eUdCY2dkczk2YlFvRS9nWUVYMFhnS3pFSWNOV0pNWkJpaUd5WDlySVhRY2dKZ0xONmp2WVFjPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMjQ4MDc4CWZpbGU6ZmxvYXRpbmdUT0RPLmFwcC50YXIuZ3oKSUZ5OEp2Y05qUGNhQmZoR1kzSWRWODB2bWptbGZtRndNcUMrelNFQ0poakMyejVlckJqamI3eHdBRjIzeU5OVFUyOCtIOHllYkppcnhFTklEZXFGQ3c9PQo=",
+      "url": "https://github.com/HendrickZhou/floatingTODO/releases/download/v0.1.8/floatingTODO.app.tar.gz"
     }
   }
 }
