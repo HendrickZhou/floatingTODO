@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { getCurrentWindow, LogicalSize, PhysicalPosition } from '@tauri-apps/api/window';
+import { relaunch } from '@tauri-apps/plugin-process';
 import { check, Update } from '@tauri-apps/plugin-updater';
 import { loadTodos, saveTodos, createItem, Item } from './store';
 import { restorePosition, startPositionPersistence } from './window';
@@ -82,7 +83,7 @@ export default function App() {
         }
       });
       setUpdateDone(true);
-      await getCurrentWindow().close();
+      await relaunch();
     } catch {
       setUpdateInstalling(false);
       setUpdateStage(null);
@@ -325,7 +326,7 @@ export default function App() {
               )}
             </>
           ) : (
-            <span className="update-banner-label">Installing… app will restart</span>
+            <span className="update-banner-label">Installing… reopening shortly</span>
           )}
         </div>
       )}
