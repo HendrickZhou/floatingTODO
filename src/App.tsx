@@ -121,19 +121,25 @@ export default function App() {
       }
       setLoaded(true);
     };
-    init();
+    init().catch(() => {});
 
-    const win = getCurrentWindow();
-    const unlistenFocus = win.onFocusChanged(({ payload: focused }) => {
-      document.documentElement.style.opacity = focused ? '1' : '0.85';
-      setWindowFocused(focused);
-    });
-    const cleanupPosition = startPositionPersistence();
+    let unlistenFocus: Promise<() => void> | null = null;
+    let cleanupPosition: (() => void) | null = null;
+    try {
+      const win = getCurrentWindow();
+      unlistenFocus = win.onFocusChanged(({ payload: focused }) => {
+        document.documentElement.style.opacity = focused ? '1' : '0.85';
+        setWindowFocused(focused);
+      });
+      cleanupPosition = startPositionPersistence();
+    } catch {
+      // not running inside Tauri — window APIs unavailable
+    }
 
     return () => {
       if (saveErrorTimerRef.current) clearTimeout(saveErrorTimerRef.current);
-      unlistenFocus.then(fn => fn()).catch(() => {});
-      cleanupPosition();
+      unlistenFocus?.then(fn => fn()).catch(() => {});
+      cleanupPosition?.();
     };
   }, []);
 
