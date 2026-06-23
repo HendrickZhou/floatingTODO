@@ -70,6 +70,16 @@ body {
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
+/* ── Focused state — more solid background ── */
+.app.window-focused {
+  background: rgba(22, 22, 34, 0.88);
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
 /* ── Drag header ── */
 .drag-header {
   height: 28px;
@@ -259,9 +269,33 @@ body {
   line-height: 1.4;
 }
 
+.item:not(.done) .item-text {
+  cursor: text;
+}
+
 .item.done .item-text {
   text-decoration: line-through;
   color: var(--text-done);
+}
+
+/* ── Inline edit input ── */
+.item-edit-input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.09);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 5px;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: inherit;
+  line-height: 1.4;
+  padding: 1px 6px;
+  outline: none;
+  min-width: 0;
+}
+
+.item-edit-input:focus {
+  border-color: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.12);
 }
 
 /* ── Delete button ── */

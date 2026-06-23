@@ -13,6 +13,9 @@ export default function App() {
   const [loaded, setLoaded] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const [collapsed, setCollapsed] = useState(getLocalCollapsed);
+  const [windowFocused, setWindowFocused] = useState(true);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editText, setEditText] = useState('');
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [updateInstalling, setUpdateInstalling] = useState(false);
   const [updateDone, setUpdateDone] = useState(false);
@@ -43,6 +46,7 @@ export default function App() {
     const win = getCurrentWindow();
     const unlistenFocus = win.onFocusChanged(({ payload: focused }) => {
       document.documentElement.style.opacity = focused ? '1' : '0.85';
+      setWindowFocused(focused);
     });
     const cleanupPosition = startPositionPersistence();
 
@@ -129,10 +133,28 @@ export default function App() {
     safeSave(next);
   };
 
+  const startEdit = (item: Item) => {
+    setEditingId(item.id);
+    setEditText(item.text);
+  };
+
+  const commitEdit = () => {
+    if (!editingId) return;
+    const text = editText.trim();
+    if (text && text !== items.find(i => i.id === editingId)?.text) {
+      const next = items.map(i => i.id === editingId ? { ...i, text } : i);
+      setItems(next);
+      safeSave(next);
+    }
+    setEditingId(null);
+  };
+
+  const cancelEdit = () => setEditingId(null);
+
   const allDone = loaded && items.length > 0 && items.every(i => i.done);
 
   return (
-    <div className={`app${allDone ? ' all-done' : ''}${collapsed ? ' collapsed' : ''}`}>
+    <div className={`app${allDone ? ' all-done' : ''}${collapsed ? ' collapsed' : ''}${windowFocused ? ' window-focused' : ''}`}>
       <div
         className="drag-header"
         onMouseDown={(e) => { if (e.buttons === 1) getCurrentWindow().startDragging(); }}
@@ -176,7 +198,7 @@ export default function App() {
             <li className="empty-state">What's on your plate today?</li>
           )}
           {items.map(item => (
-            <li key={item.id} className={`item${item.done ? ' done' : ''}`}>
+            <li key={item.id} className={`item${item.done ? ' done' : ''}${editingId === item.id ? ' editing' : ''}`}>
               <input
                 type="checkbox"
                 className="item-checkbox"
@@ -184,7 +206,24 @@ export default function App() {
                 onChange={() => toggleItem(item.id)}
                 aria-label={`Mark "${item.text}" complete`}
               />
-              <span className="item-text">{item.text}</span>
+              {editingId === item.id ? (
+                <input
+                  className="item-edit-input"
+                  value={editText}
+                  onChange={e => setEditText(e.target.value)}
+                  onBlur={commitEdit}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') { e.preventDefault(); commitEdit(); }
+                    if (e.key === 'Escape') cancelEdit();
+                  }}
+                  autoFocus
+                />
+              ) : (
+                <span
+                  className="item-text"
+                  onDoubleClick={() => !item.done && startEdit(item)}
+                >{item.text}</span>
+              )}
               <button
                 className="delete-btn"
                 aria-label="Delete task"
