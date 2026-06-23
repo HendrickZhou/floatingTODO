@@ -39,7 +39,7 @@ export default function App() {
 
     const win = getCurrentWindow();
     const unlistenFocus = win.onFocusChanged(({ payload: focused }) => {
-      document.documentElement.style.opacity = focused ? '1' : '0.35';
+      document.documentElement.style.opacity = focused ? '1' : '0.85';
     });
     const cleanupPosition = startPositionPersistence();
 
