@@ -19,7 +19,11 @@ export default function App() {
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [updateInstalling, setUpdateInstalling] = useState(false);
   const [updateDone, setUpdateDone] = useState(false);
+  const [updateStage, setUpdateStage] = useState<'downloading' | 'installing' | null>(null);
+  const [downloadPct, setDownloadPct] = useState(0);
   const updateRef = useRef<Update | null>(null);
+  const downloadedRef = useRef(0);
+  const totalSizeRef = useRef(0);
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const saveErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isResizingRef = useRef(false);
@@ -60,12 +64,28 @@ export default function App() {
   const handleUpdateClick = async () => {
     if (!updateRef.current || updateInstalling || updateDone) return;
     setUpdateInstalling(true);
+    setUpdateStage('downloading');
+    setDownloadPct(0);
+    downloadedRef.current = 0;
+    totalSizeRef.current = 0;
     try {
-      await updateRef.current.downloadAndInstall();
+      await updateRef.current.downloadAndInstall(event => {
+        if (event.event === 'Started') {
+          totalSizeRef.current = event.data.contentLength ?? 0;
+        } else if (event.event === 'Progress') {
+          downloadedRef.current += event.data.chunkLength;
+          if (totalSizeRef.current > 0) {
+            setDownloadPct(Math.round((downloadedRef.current / totalSizeRef.current) * 100));
+          }
+        } else if (event.event === 'Finished') {
+          setUpdateStage('installing');
+        }
+      });
       setUpdateDone(true);
       await getCurrentWindow().close();
     } catch {
       setUpdateInstalling(false);
+      setUpdateStage(null);
     }
   };
 
@@ -242,6 +262,27 @@ export default function App() {
           <div className="save-toast">Couldn't save — disk full?</div>
         )}
       </div>
+
+      {updateStage && (
+        <div className="update-banner">
+          {updateStage === 'downloading' ? (
+            <>
+              <span className="update-banner-label">Downloading update…</span>
+              <div className="update-progress-track">
+                <div
+                  className="update-progress-fill"
+                  style={{ width: totalSizeRef.current > 0 ? `${downloadPct}%` : '0%' }}
+                />
+              </div>
+              {totalSizeRef.current > 0 && (
+                <span className="update-banner-pct">{downloadPct}%</span>
+              )}
+            </>
+          ) : (
+            <span className="update-banner-label">Installing… app will restart</span>
+          )}
+        </div>
+      )}
     </div>
   );
 }

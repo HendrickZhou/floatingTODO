@@ -337,6 +337,51 @@ body {
   100% { opacity: 1; }
 }
 
+/* ── Update progress banner ── */
+.update-banner {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(20, 20, 30, 0.92);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0 0 var(--panel-radius) var(--panel-radius);
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  animation: toast-in 0.2s ease;
+}
+
+.update-banner-label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.75);
+  flex-shrink: 0;
+}
+
+.update-progress-track {
+  flex: 1;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.update-progress-fill {
+  height: 100%;
+  background: #30D158;
+  border-radius: 2px;
+  transition: width 150ms ease;
+}
+
+.update-banner-pct {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.45);
+  flex-shrink: 0;
+  min-width: 28px;
+  text-align: right;
+}
+
 /* ── Save-error toast ── */
 .save-toast {
   position: absolute;
