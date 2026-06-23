@@ -2,10 +2,81 @@ import { useEffect, useRef, useState } from 'react';
 import { getCurrentWindow, LogicalSize, PhysicalPosition } from '@tauri-apps/api/window';
 import { relaunch } from '@tauri-apps/plugin-process';
 import { check, Update } from '@tauri-apps/plugin-updater';
+import {
+  DndContext, closestCenter, PointerSensor,
+  useSensor, useSensors, DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext, verticalListSortingStrategy,
+  arrayMove, useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { loadTodos, saveTodos, createItem, Item } from './store';
 import { restorePosition, startPositionPersistence } from './window';
 import { getLocalCollapsed, setLocalCollapsed, clampYForExpand } from './collapse';
 import './App.css';
+
+interface SortableItemProps {
+  item: Item;
+  editingId: string | null;
+  editText: string;
+  onToggle: (id: string) => void;
+  onDelete: (id: string) => void;
+  onStartEdit: (item: Item) => void;
+  onCommitEdit: () => void;
+  onCancelEdit: () => void;
+  onEditTextChange: (text: string) => void;
+}
+
+function SortableItem({
+  item, editingId, editText,
+  onToggle, onDelete, onStartEdit, onCommitEdit, onCancelEdit, onEditTextChange,
+}: SortableItemProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: item.id, disabled: editingId !== null });
+
+  return (
+    <li
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={`item${item.done ? ' done' : ''}${editingId === item.id ? ' editing' : ''}${isDragging ? ' dragging' : ''}`}
+    >
+      <span className="item-handle" {...listeners} {...attributes} />
+      <input
+        type="checkbox"
+        className="item-checkbox"
+        checked={item.done}
+        onChange={() => onToggle(item.id)}
+        aria-label={`Mark "${item.text}" complete`}
+      />
+      {editingId === item.id ? (
+        <input
+          className="item-edit-input"
+          value={editText}
+          onChange={e => onEditTextChange(e.target.value)}
+          onBlur={onCommitEdit}
+          onKeyDown={e => {
+            if (e.key === 'Enter') { e.preventDefault(); onCommitEdit(); }
+            if (e.key === 'Escape') onCancelEdit();
+          }}
+          autoFocus
+        />
+      ) : (
+        <span
+          className="item-text"
+          onDoubleClick={() => !item.done && onStartEdit(item)}
+        >{item.text}</span>
+      )}
+      <button
+        className="delete-btn"
+        aria-label="Delete task"
+        onClick={() => onDelete(item.id)}
+      >
+        ×
+      </button>
+    </li>
+  );
+}
 
 export default function App() {
   const [items, setItems] = useState<Item[]>([]);
@@ -28,6 +99,10 @@ export default function App() {
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const saveErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isResizingRef = useRef(false);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+  );
 
   useEffect(() => {
     check().then(update => {
@@ -121,7 +196,7 @@ export default function App() {
   };
 
   const safeSave = (next: Item[]) => {
-    if (loadError) return; // never overwrite a corrupted file
+    if (loadError) return;
     saveQueueRef.current = saveQueueRef.current
       .catch(() => {})
       .then(() => saveTodos(next))
@@ -172,39 +247,14 @@ export default function App() {
 
   const cancelEdit = () => setEditingId(null);
 
-  const [dragIndex, setDragIndex] = useState<number | null>(null);
-  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
-
-  const handleDragStart = (e: React.DragEvent, index: number) => {
-    setDragIndex(index);
-    e.dataTransfer.effectAllowed = 'move';
-  };
-
-  const handleDragOver = (e: React.DragEvent, index: number) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    if (dragOverIndex !== index) setDragOverIndex(index);
-  };
-
-  const handleDrop = (e: React.DragEvent, index: number) => {
-    e.preventDefault();
-    if (dragIndex === null || dragIndex === index) {
-      setDragIndex(null);
-      setDragOverIndex(null);
-      return;
-    }
-    const next = [...items];
-    const [moved] = next.splice(dragIndex, 1);
-    next.splice(index, 0, moved);
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = items.findIndex(i => i.id === active.id);
+    const newIndex = items.findIndex(i => i.id === over.id);
+    const next = arrayMove(items, oldIndex, newIndex);
     setItems(next);
     safeSave(next);
-    setDragIndex(null);
-    setDragOverIndex(null);
-  };
-
-  const handleDragEnd = () => {
-    setDragIndex(null);
-    setDragOverIndex(null);
   };
 
   const allDone = loaded && items.length > 0 && items.every(i => i.done);
@@ -249,58 +299,29 @@ export default function App() {
           autoFocus
         />
 
-        <ul className="item-list">
-          {loaded && items.length === 0 && (
-            <li className="empty-state">What's on your plate today?</li>
-          )}
-          {items.map((item, idx) => (
-            <li
-              key={item.id}
-              className={`item${item.done ? ' done' : ''}${editingId === item.id ? ' editing' : ''}${dragIndex === idx ? ' dragging' : ''}${dragOverIndex === idx && dragIndex !== idx ? ' drag-over' : ''}`}
-              onDragOver={(e) => handleDragOver(e, idx)}
-              onDrop={(e) => handleDrop(e, idx)}
-              onDragEnd={handleDragEnd}
-            >
-              <span
-                className="item-handle"
-                draggable={editingId === null}
-                onDragStart={(e) => handleDragStart(e, idx)}
-              />
-              <input
-                type="checkbox"
-                className="item-checkbox"
-                checked={item.done}
-                onChange={() => toggleItem(item.id)}
-                aria-label={`Mark "${item.text}" complete`}
-              />
-              {editingId === item.id ? (
-                <input
-                  className="item-edit-input"
-                  value={editText}
-                  onChange={e => setEditText(e.target.value)}
-                  onBlur={commitEdit}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') { e.preventDefault(); commitEdit(); }
-                    if (e.key === 'Escape') cancelEdit();
-                  }}
-                  autoFocus
-                />
-              ) : (
-                <span
-                  className="item-text"
-                  onDoubleClick={() => !item.done && startEdit(item)}
-                >{item.text}</span>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={items.map(i => i.id)} strategy={verticalListSortingStrategy}>
+            <ul className="item-list">
+              {loaded && items.length === 0 && (
+                <li className="empty-state">What's on your plate today?</li>
               )}
-              <button
-                className="delete-btn"
-                aria-label="Delete task"
-                onClick={() => deleteItem(item.id)}
-              >
-                ×
-              </button>
-            </li>
-          ))}
-        </ul>
+              {items.map(item => (
+                <SortableItem
+                  key={item.id}
+                  item={item}
+                  editingId={editingId}
+                  editText={editText}
+                  onToggle={toggleItem}
+                  onDelete={deleteItem}
+                  onStartEdit={startEdit}
+                  onCommitEdit={commitEdit}
+                  onCancelEdit={cancelEdit}
+                  onEditTextChange={setEditText}
+                />
+              ))}
+            </ul>
+          </SortableContext>
+        </DndContext>
 
         {loadError && (
           <div className="save-toast">⚠ todos.json is corrupted — data not loaded</div>

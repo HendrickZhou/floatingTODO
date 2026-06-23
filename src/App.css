@@ -228,11 +228,8 @@ body {
 }
 
 .item.dragging {
-  opacity: 0.35;
-}
-
-.item.drag-over {
-  box-shadow: inset 0 2px 0 rgba(48, 209, 88, 0.55);
+  opacity: 0.4;
+  background: rgba(255, 255, 255, 0.04);
 }
 
 /* ── Drag handle ── */
