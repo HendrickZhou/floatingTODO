@@ -171,6 +171,41 @@ export default function App() {
 
   const cancelEdit = () => setEditingId(null);
 
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDragIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverIndex !== index) setDragOverIndex(index);
+  };
+
+  const handleDrop = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (dragIndex === null || dragIndex === index) {
+      setDragIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+    const next = [...items];
+    const [moved] = next.splice(dragIndex, 1);
+    next.splice(index, 0, moved);
+    setItems(next);
+    safeSave(next);
+    setDragIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDragIndex(null);
+    setDragOverIndex(null);
+  };
+
   const allDone = loaded && items.length > 0 && items.every(i => i.done);
 
   return (
@@ -217,8 +252,19 @@ export default function App() {
           {loaded && items.length === 0 && (
             <li className="empty-state">What's on your plate today?</li>
           )}
-          {items.map(item => (
-            <li key={item.id} className={`item${item.done ? ' done' : ''}${editingId === item.id ? ' editing' : ''}`}>
+          {items.map((item, idx) => (
+            <li
+              key={item.id}
+              className={`item${item.done ? ' done' : ''}${editingId === item.id ? ' editing' : ''}${dragIndex === idx ? ' dragging' : ''}${dragOverIndex === idx && dragIndex !== idx ? ' drag-over' : ''}`}
+              onDragOver={(e) => handleDragOver(e, idx)}
+              onDrop={(e) => handleDrop(e, idx)}
+              onDragEnd={handleDragEnd}
+            >
+              <span
+                className="item-handle"
+                draggable={editingId === null}
+                onDragStart={(e) => handleDragStart(e, idx)}
+              />
               <input
                 type="checkbox"
                 className="item-checkbox"
