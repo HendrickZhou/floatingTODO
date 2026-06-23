@@ -163,12 +163,13 @@ export default function App() {
           setUpdateStage('installing');
         }
       });
-      setUpdateDone(true);
-      await relaunch();
     } catch {
       setUpdateInstalling(false);
       setUpdateStage(null);
+      return;
     }
+    setUpdateDone(true);
+    await relaunch();
   };
 
   const toggleCollapse = async () => {
